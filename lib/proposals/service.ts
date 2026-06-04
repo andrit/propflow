@@ -26,14 +26,17 @@ export async function createProposal(
   await db.insert(proposals).values({
     id,
     userId,
-    title:  input.title,
-    client: input.client,
-    status: 'draft',
+    title:        input.title,
+    client:       input.client,
+    proposalType: input.proposalType,
+    template:     input.template,
+    currency:     input.currency,
+    status:       'draft',
   })
 
   // Safe: failure here means the proposal exists but has no sections — acceptable state
   await db.insert(proposalSections).values(
-    defaultSections(id)
+    defaultSections(id, input.client)
   )
 
   const proposal = await findProposal(id)
@@ -198,22 +201,35 @@ export async function shareProposal(proposalId: string, userId: string): Promise
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function defaultSections(proposalId: string) {
-  const defaults = [
-    { type: 'client-info',  title: 'Client Information', order: 0 },
-    { type: 'scope',        title: 'Scope of Work',      order: 1 },
-    { type: 'deliverables', title: 'Deliverables',        order: 2 },
-    { type: 'pricing',      title: 'Pricing',             order: 3 },
-    { type: 'terms',        title: 'Terms & Conditions',  order: 4 },
-  ] as const
+const DEFAULT_TERMS = `**Payment.** A 50% deposit is due upon proposal acceptance. The remaining balance is due upon delivery of final work. All payments are due within 7 days of invoice.
 
-  return defaults.map(d => ({
-    id:         nanoid(),
-    proposalId,
-    type:       d.type,
-    title:      d.title,
-    content:    {},
-    orderIndex: d.order,
-    complete:   false,
-  }))
+**Revisions.** Each deliverable includes two rounds of revisions. Additional revisions are billed at the hourly rate agreed upon. Revisions do not include changes to the agreed scope.
+
+**Intellectual Property.** Full ownership transfers upon receipt of final payment. I retain the right to display this work in my portfolio.
+
+**Cancellation.** If the project is cancelled after work begins, I retain the deposit and deliver work completed to date.`
+
+function defaultSections(proposalId: string, client: { name: string; company?: string; email: string }) {
+  return [
+    {
+      id: nanoid(), proposalId, type: 'client-info', title: 'Client Information', orderIndex: 0, complete: false,
+      content: { name: client.name, company: client.company ?? '', email: client.email },
+    },
+    {
+      id: nanoid(), proposalId, type: 'scope', title: 'Scope of Work', orderIndex: 1, complete: false,
+      content: {},
+    },
+    {
+      id: nanoid(), proposalId, type: 'deliverables', title: 'Deliverables', orderIndex: 2, complete: false,
+      content: { items: [] },
+    },
+    {
+      id: nanoid(), proposalId, type: 'pricing', title: 'Investment', orderIndex: 3, complete: false,
+      content: { lineItems: [] },
+    },
+    {
+      id: nanoid(), proposalId, type: 'terms', title: 'Terms & Conditions', orderIndex: 4, complete: false,
+      content: { text: DEFAULT_TERMS },
+    },
+  ]
 }

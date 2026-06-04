@@ -26,20 +26,24 @@ export async function saveBrand(
   if (existing) {
     await db.update(brands)
       .set({
-        ...(input.primaryColor && { primaryColor: input.primaryColor }),
-        ...(input.accentColor  && { accentColor:  input.accentColor }),
-        ...(input.font         && { font:          input.font }),
+        ...(input.primaryColor !== undefined && { primaryColor: input.primaryColor }),
+        ...(input.accentColor  !== undefined && { accentColor:  input.accentColor }),
+        ...(input.font         !== undefined && { font:          input.font }),
+        ...(input.coverQuote             !== undefined && { coverQuote:             input.coverQuote }),
+        ...(input.coverQuoteAttribution  !== undefined && { coverQuoteAttribution:  input.coverQuoteAttribution }),
         updatedAt: new Date(),
       })
       .where(eq(brands.userId, userId))
   } else {
     await db.insert(brands).values({
-      id:           nanoid(),
+      id:                    nanoid(),
       userId,
-      logoR2Key:    null,
-      primaryColor: input.primaryColor ?? '#7c3aed',
-      accentColor:  input.accentColor  ?? '#a78bfa',
-      font:         input.font         ?? 'inter',
+      logoR2Key:             null,
+      primaryColor:          input.primaryColor ?? '#4f46e5',
+      accentColor:           input.accentColor  ?? '#818cf8',
+      font:                  input.font         ?? 'inter',
+      coverQuote:            input.coverQuote   ?? null,
+      coverQuoteAttribution: input.coverQuoteAttribution ?? null,
     })
   }
 
@@ -70,13 +74,15 @@ export async function saveLogo(userId: string, logoR2Key: string, tier: Tier): P
 
 function rowToBrand(row: typeof brands.$inferSelect): Brand {
   return {
-    id:           row.id,
-    userId:       row.userId,
-    logoR2Key:    row.logoR2Key,
-    primaryColor: row.primaryColor,
-    accentColor:  row.accentColor,
-    font:         row.font as Brand['font'],
-    createdAt:    row.createdAt,
-    updatedAt:    row.updatedAt,
+    id:                    row.id,
+    userId:                row.userId,
+    logoR2Key:             row.logoR2Key ?? null,
+    primaryColor:          row.primaryColor,
+    accentColor:           row.accentColor,
+    font:                  row.font as Brand['font'],
+    coverQuote:            row.coverQuote ?? null,
+    coverQuoteAttribution: row.coverQuoteAttribution ?? null,
+    createdAt:             row.createdAt,
+    updatedAt:             row.updatedAt,
   }
 }

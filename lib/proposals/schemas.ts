@@ -18,7 +18,12 @@ export const LineItemSchema = z.object({
 // ── Section content schemas (one per type) ─────────────────────────────────
 
 export const ClientInfoContentSchema = z.object({
-  notes: z.string().optional(),
+  name:         z.string().optional(),
+  company:      z.string().optional(),
+  email:        z.string().optional(),
+  phone:        z.string().optional(),
+  projectStart: z.string().optional(),
+  notes:        z.string().optional(),
 })
 
 export const ScopeContentSchema = z.object({
@@ -35,14 +40,19 @@ export const DeliverablesContentSchema = z.object({
   })).optional(),
 })
 
+export const DiscountSchema = z.object({
+  label:  z.string().default('Discount'),
+  amount: z.number().nonnegative(),
+})
+
 export const PricingContentSchema = z.object({
-  lineItems:    z.array(LineItemSchema).optional(),
-  subtotal:     z.number().nonnegative().optional(),
-  taxRate:      z.number().nonnegative().optional(),
-  taxAmount:    z.number().nonnegative().optional(),
-  total:        z.number().nonnegative().optional(),
-  currency:     z.string().default('USD'),
-  depositPct:   z.number().min(0).max(100).optional(),
+  lineItems:  z.array(LineItemSchema).optional(),
+  discount:   DiscountSchema.nullable().optional(),
+  subtotal:   z.number().nonnegative().optional(),
+  taxRate:    z.number().nonnegative().optional(),
+  taxAmount:  z.number().nonnegative().optional(),
+  total:      z.number().nonnegative().optional(),
+  depositPct: z.number().min(0).max(100).optional(),
 })
 
 export const TermsContentSchema = z.object({
@@ -89,19 +99,27 @@ export type ProposalStatus = typeof PROPOSAL_STATUSES[number]
 export const PROPOSAL_TYPES = ['cold', 'warm', 'retainer'] as const
 export type ProposalType = typeof PROPOSAL_TYPES[number]
 
+export const TEMPLATE_TYPES = ['clean', 'executive'] as const
+export type TemplateType = typeof TEMPLATE_TYPES[number]
+
 export const ProposalSchema = z.object({
-  id:             z.string(),
-  userId:         z.string(),
-  title:          z.string().min(1, 'Title is required'),
-  client:         ClientSchema,
-  proposalType:   z.enum(PROPOSAL_TYPES),
-  status:         z.enum(PROPOSAL_STATUSES),
-  pdfR2Key:       z.string().nullable(),
-  rootProposalId: z.string().nullable(), // null = this is the original
-  supersededById: z.string().nullable(), // null = this is the current version
-  sections:       z.array(SectionSchema).default([]),
-  createdAt:      z.date(),
-  updatedAt:      z.date(),
+  id:                              z.string(),
+  userId:                          z.string(),
+  title:                           z.string().min(1, 'Title is required'),
+  client:                          ClientSchema,
+  proposalType:                    z.enum(PROPOSAL_TYPES),
+  status:                          z.enum(PROPOSAL_STATUSES),
+  template:                        z.enum(TEMPLATE_TYPES).default('clean'),
+  currency:                        z.string().default('USD'),
+  expiryAt:                        z.date().nullable(),
+  coverQuoteOverride:              z.string().nullable(),
+  coverQuoteAttributionOverride:   z.string().nullable(),
+  pdfR2Key:                        z.string().nullable(),
+  rootProposalId:                  z.string().nullable(),
+  supersededById:                  z.string().nullable(),
+  sections:                        z.array(SectionSchema).default([]),
+  createdAt:                       z.date(),
+  updatedAt:                       z.date(),
 })
 
 export type Client   = z.infer<typeof ClientSchema>
@@ -115,6 +133,8 @@ export const CreateProposalSchema = z.object({
   title:        z.string().min(1).max(200),
   client:       ClientSchema,
   proposalType: z.enum(PROPOSAL_TYPES).default('cold'),
+  template:     z.enum(TEMPLATE_TYPES).default('clean'),
+  currency:     z.string().max(10).default('USD'),
 })
 
 export const UpdateSectionSchema = z.object({
@@ -128,6 +148,7 @@ export const AddSectionSchema = z.object({
   title: z.string().min(1).max(200),
 })
 
-export type CreateProposalInput = z.infer<typeof CreateProposalSchema>
+export type CreateProposalInput  = z.infer<typeof CreateProposalSchema>
+export type Discount             = z.infer<typeof DiscountSchema>
 export type UpdateSectionInput  = z.infer<typeof UpdateSectionSchema>
 export type AddSectionInput     = z.infer<typeof AddSectionSchema>

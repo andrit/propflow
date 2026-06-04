@@ -121,9 +121,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 | Phase | Status |
 |-------|--------|
 | 0 — Plan & spec approved | ✅ 2026-06-03 |
-| 1 — Scaffold approved | ⬜ |
-| 2 — Core schema approved | ⬜ |
-| 3 — Features complete | ⬜ |
+| 1 — Scaffold approved | ✅ 2026-06-03 |
+| 2 — Core schema approved | ✅ 2026-06-04 |
+| 2D — Design session approved | ✅ 2026-06-04 |
+| 3 — Features complete | ✅ 2026-06-04 |
 | 4 — Billing verified | ⬜ |
 | 5 — Polish & production config | ⬜ |
 | 6 — Extract to feature-graph | ⬜ |

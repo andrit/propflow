@@ -1,4 +1,4 @@
-import { eq, and, gte, count, desc, inArray } from 'drizzle-orm'
+import { eq, and, or, gte, count, desc, inArray, isNull } from 'drizzle-orm'
 import { db } from '../db'
 import { proposals, proposalSections, proposalShares } from '../db/schema'
 import type { Proposal, Section } from './schemas'
@@ -59,24 +59,41 @@ export async function findShareByToken(token: string) {
   return row ?? null
 }
 
+export async function findShareByProposal(proposalId: string) {
+  const [row] = await db
+    .select()
+    .from(proposalShares)
+    .where(eq(proposalShares.proposalId, proposalId))
+    .orderBy(desc(proposalShares.createdAt))
+    .limit(1)
+  return row ?? null
+}
+
 // ── Type mapping ─────────────────────────────────────────────────────────
 
-export async function findLatestVersion(rootProposalId: string): Promise<Proposal | null> {
-  // Latest = the version in the chain with no supersededById
-  const rows = await db
-    .select()
+// Find the current (unsuperseded) version in a proposal chain.
+// anyId can be the original proposal ID or any revision's ID.
+export async function findLatestVersion(anyId: string): Promise<Proposal | null> {
+  const [row] = await db
+    .select({ id: proposals.id, rootProposalId: proposals.rootProposalId })
     .from(proposals)
-    .where(
-      and(
-        eq(proposals.rootProposalId, rootProposalId),
-        eq(proposals.supersededById, proposals.supersededById) // not null check via IS NULL below
-      )
-    )
-  // Simpler: fetch the root and walk — for MVP, chains are short (1-3 versions)
-  const [root] = await db.select().from(proposals).where(eq(proposals.id, rootProposalId))
-  if (!root) return null
-  if (!root.supersededById) return findProposal(rootProposalId)
-  return findProposal(root.supersededById)
+    .where(eq(proposals.id, anyId))
+  if (!row) return null
+
+  const rootId = row.rootProposalId ?? row.id
+
+  // The latest version is the one with no successor in this chain
+  const [latest] = await db
+    .select({ id: proposals.id })
+    .from(proposals)
+    .where(and(
+      or(eq(proposals.id, rootId), eq(proposals.rootProposalId, rootId)),
+      isNull(proposals.supersededById)
+    ))
+    .limit(1)
+
+  if (!latest) return null
+  return findProposal(latest.id)
 }
 
 function rowToProposal(
@@ -84,18 +101,23 @@ function rowToProposal(
   sections: (typeof proposalSections.$inferSelect)[]
 ): Proposal {
   return {
-    id:             row.id,
-    userId:         row.userId,
-    title:          row.title,
-    client:         row.client as Proposal['client'],
-    proposalType:   row.proposalType as Proposal['proposalType'],
-    status:         row.status as Proposal['status'],
-    pdfR2Key:       row.pdfR2Key,
-    rootProposalId: row.rootProposalId,
-    supersededById: row.supersededById,
-    sections:       sections.map(rowToSection),
-    createdAt:      row.createdAt,
-    updatedAt:      row.updatedAt,
+    id:                             row.id,
+    userId:                         row.userId,
+    title:                          row.title,
+    client:                         row.client as Proposal['client'],
+    proposalType:                   row.proposalType as Proposal['proposalType'],
+    status:                         row.status as Proposal['status'],
+    template:                       (row.template ?? 'clean') as Proposal['template'],
+    currency:                       row.currency ?? 'USD',
+    expiryAt:                       row.expiryAt ?? null,
+    coverQuoteOverride:             row.coverQuoteOverride ?? null,
+    coverQuoteAttributionOverride:  row.coverQuoteAttributionOverride ?? null,
+    pdfR2Key:                       row.pdfR2Key ?? null,
+    rootProposalId:                 row.rootProposalId ?? null,
+    supersededById:                 row.supersededById ?? null,
+    sections:                       sections.map(rowToSection),
+    createdAt:                      row.createdAt,
+    updatedAt:                      row.updatedAt,
   }
 }
 

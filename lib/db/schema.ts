@@ -6,13 +6,17 @@ export const proposals = pgTable('proposals', {
   id:              text('id').primaryKey(),
   userId:          text('user_id').notNull(),
   title:           text('title').notNull(),
-  client:          jsonb('client').notNull().default({}),    // ClientSchema value object
-  proposalType:    text('proposal_type').notNull().default('cold'), // 'cold' | 'warm' | 'retainer'
-  status:          text('status').notNull().default('draft'), // 'draft' | 'finalized' | 'archived'
-  pdfR2Key:        text('pdf_r2_key'),                        // set after PDF is generated
-  // Versioning — null on the original; set on all revisions
-  rootProposalId:  text('root_proposal_id'),                  // FK self — anchor for the whole chain
-  supersededById:  text('superseded_by_id'),                  // FK self — next version in chain
+  client:          jsonb('client').notNull().default({}),
+  proposalType:    text('proposal_type').notNull().default('cold'),
+  status:          text('status').notNull().default('draft'),
+  template:        text('template').notNull().default('clean'),    // 'clean' | 'executive'
+  currency:        text('currency').notNull().default('USD'),
+  expiryAt:        timestamp('expiry_at', { withTimezone: true }),
+  coverQuoteOverride:             text('cover_quote_override'),
+  coverQuoteAttributionOverride:  text('cover_quote_attribution_override'),
+  pdfR2Key:        text('pdf_r2_key'),
+  rootProposalId:  text('root_proposal_id'),
+  supersededById:  text('superseded_by_id'),
   createdAt:       timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:       timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -67,14 +71,16 @@ export const templateSections = pgTable('template_sections', {
 // ── Brand & Account context ────────────────────────────────────────────────
 
 export const brands = pgTable('brands', {
-  id:           text('id').primaryKey(),
-  userId:       text('user_id').notNull(),
-  logoR2Key:    text('logo_r2_key'),
-  primaryColor: text('primary_color').notNull().default('#7c3aed'),
-  accentColor:  text('accent_color').notNull().default('#a78bfa'),
-  font:         text('font').notNull().default('inter'),
-  createdAt:    timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt:    timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  id:                     text('id').primaryKey(),
+  userId:                 text('user_id').notNull(),
+  logoR2Key:              text('logo_r2_key'),
+  primaryColor:           text('primary_color').notNull().default('#4f46e5'),
+  accentColor:            text('accent_color').notNull().default('#818cf8'),
+  font:                   text('font').notNull().default('inter'),
+  coverQuote:             text('cover_quote'),
+  coverQuoteAttribution:  text('cover_quote_attribution'),
+  createdAt:              timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:              timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   unique('brands_user_id_unique').on(t.userId),
 ])
