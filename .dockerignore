@@ -1,0 +1,10 @@
+.git
+.next
+node_modules
+.env.local
+.env*.local
+npm-debug.log*
+drizzle
+docker-compose.yml
+*.md
+!README.md
