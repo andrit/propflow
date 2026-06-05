@@ -126,7 +126,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 | 2D — Design session approved | ✅ 2026-06-04 |
 | 3 — Features complete | ✅ 2026-06-04 |
 | 4 — Billing verified | ✅ 2026-06-04 |
-| 5 — Polish & production config | ⬜ |
+| 5 — Polish & production config | ✅ 2026-06-05 |
 | 6 — Extract to feature-graph | ⬜ |
 | 7 — Export artifact | ⬜ |
 
