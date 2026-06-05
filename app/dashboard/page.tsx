@@ -2,7 +2,9 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { listProposals } from '@/lib/proposals/queries'
+import { TIERS, TIER_LABELS, type Tier } from '@/lib/tiers'
 import type { Proposal } from '@/lib/proposals/schemas'
+import ManageBillingButton from './ManageBillingButton'
 
 const STATUS_STYLES: Record<string, string> = {
   draft:     'bg-gray-100 text-gray-600',
@@ -49,8 +51,11 @@ function ProposalCard({ p }: { p: Proposal }) {
 }
 
 export default async function DashboardPage() {
-  const { userId } = await auth()
+  const { userId, sessionClaims } = await auth()
   if (!userId) redirect('/')
+
+  const meta = (sessionClaims?.metadata as Record<string, unknown>) ?? {}
+  const tier = (meta.tier as Tier) ?? TIERS.FREE
 
   const proposals = await listProposals(userId)
   const active = proposals.filter(p => p.status !== 'archived')
@@ -63,7 +68,7 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Proposals</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{active.length} active</p>
+            <p className="text-sm text-gray-500 mt-0.5">{active.length} active · {TIER_LABELS[tier]} plan</p>
           </div>
           <Link
             href="/proposals/new"
@@ -101,8 +106,16 @@ export default async function DashboardPage() {
         )}
 
         {/* Nav */}
-        <div className="mt-10 pt-6 border-t border-gray-200 flex gap-4 text-sm text-gray-500">
+        <div className="mt-10 pt-6 border-t border-gray-200 flex flex-wrap gap-4 text-sm text-gray-500">
           <Link href="/brand" className="hover:text-gray-900 transition-colors">Brand Settings</Link>
+          {tier === TIERS.FREE && (
+            <Link href="/pricing" className="text-violet-600 font-semibold hover:text-violet-800 transition-colors">
+              Upgrade to Pro →
+            </Link>
+          )}
+          {tier !== TIERS.FREE && (
+            <ManageBillingButton />
+          )}
         </div>
       </div>
     </main>
