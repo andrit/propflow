@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 
 type Brand = {
+  logoUrl: string | null
   primaryColor: string
   accentColor: string
   font: 'inter' | 'merriweather' | 'playfair'
@@ -19,32 +21,71 @@ const FONTS = [
 
 export default function BrandPage() {
   const [brand, setBrand] = useState<Brand>({
+    logoUrl:      null,
     primaryColor: '#4f46e5',
     accentColor:  '#818cf8',
     font:          'inter',
     coverQuote:    null,
     coverQuoteAttribution: null,
   })
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving]   = useState(false)
-  const [saved, setSaved]     = useState(false)
-  const [error, setError]     = useState('')
-  const [proRequired, setProRequired] = useState(false)
+  const [loading, setLoading]           = useState(true)
+  const [saving, setSaving]             = useState(false)
+  const [saved, setSaved]               = useState(false)
+  const [error, setError]               = useState('')
+  const [proRequired, setProRequired]   = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [logoError, setLogoError]       = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch('/api/brand')
       .then(r => r.json())
       .then(data => {
         if (data) setBrand({
-          primaryColor:          data.primaryColor ?? '#4f46e5',
-          accentColor:           data.accentColor  ?? '#818cf8',
-          font:                  data.font         ?? 'inter',
-          coverQuote:            data.coverQuote   ?? '',
+          logoUrl:               data.logoUrl       ?? null,
+          primaryColor:          data.primaryColor  ?? '#4f46e5',
+          accentColor:           data.accentColor   ?? '#818cf8',
+          font:                  data.font          ?? 'inter',
+          coverQuote:            data.coverQuote    ?? '',
           coverQuoteAttribution: data.coverQuoteAttribution ?? '',
         })
       })
       .finally(() => setLoading(false))
   }, [])
+
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoUploading(true)
+    setLogoError('')
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/brand/logo', { method: 'POST', body: form })
+      if (res.status === 403) { setProRequired(true); return }
+      if (!res.ok) {
+        const data = await res.json()
+        setLogoError(data.error ?? 'Upload failed')
+        return
+      }
+      const data = await res.json()
+      setBrand(b => ({ ...b, logoUrl: data.logoUrl }))
+    } finally {
+      setLogoUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleLogoRemove() {
+    setLogoUploading(true)
+    setLogoError('')
+    try {
+      await fetch('/api/brand/logo', { method: 'DELETE' })
+      setBrand(b => ({ ...b, logoUrl: null }))
+    } finally {
+      setLogoUploading(false)
+    }
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -104,6 +145,54 @@ export default function BrandPage() {
         )}
 
         <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-6">
+          {/* Logo */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">Logo</h2>
+            <p className="text-xs text-gray-400 mb-3">Pro feature. PNG, JPG, SVG, or WebP · max 1 MB · appears on proposal cover.</p>
+            {logoError && <p className="text-xs text-red-500 mb-2">{logoError}</p>}
+            {brand.logoUrl ? (
+              <div className="flex items-center gap-4">
+                <div className="relative w-24 h-16 rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                  <Image src={brand.logoUrl} alt="Your logo" fill className="object-contain p-2" unoptimized />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={logoUploading}
+                    className="text-xs font-semibold text-violet-600 hover:text-violet-700 disabled:opacity-50"
+                  >
+                    {logoUploading ? 'Uploading…' : 'Replace logo'}
+                  </button>
+                  <button
+                    onClick={handleLogoRemove}
+                    disabled={logoUploading}
+                    className="text-xs font-semibold text-red-400 hover:text-red-600 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={logoUploading}
+                className="flex items-center justify-center gap-2 w-full py-6 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-violet-300 hover:text-violet-600 transition-colors disabled:opacity-50"
+              >
+                {logoUploading ? 'Uploading…' : '+ Upload logo'}
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+              onChange={handleLogoChange}
+              className="sr-only"
+              aria-label="Upload logo"
+            />
+          </div>
+
+          <div className="border-t border-gray-100" />
+
           {/* Colors */}
           <div>
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Brand Colors</h2>

@@ -9,7 +9,8 @@ export const proposals = pgTable('proposals', {
   client:          jsonb('client').notNull().default({}),
   proposalType:    text('proposal_type').notNull().default('cold'),
   status:          text('status').notNull().default('draft'),
-  template:        text('template').notNull().default('clean'),    // 'clean' | 'executive'
+  template:        text('template').notNull().default('clean'),    // 'clean' | 'executive' | 'studio'
+  industry:        text('industry').notNull().default('tech'),     // see INDUSTRY_TYPES
   currency:        text('currency').notNull().default('USD'),
   expiryAt:        timestamp('expiry_at', { withTimezone: true }),
   coverQuoteOverride:             text('cover_quote_override'),

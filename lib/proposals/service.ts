@@ -12,7 +12,8 @@ import {
 } from '../domain/invariants'
 import { findProposal, countProposalsThisMonth } from './queries'
 import type { Tier } from '../tiers'
-import type { CreateProposalInput, UpdateSectionInput, AddSectionInput, Proposal } from './schemas'
+import type { CreateProposalInput, UpdateSectionInput, AddSectionInput, Proposal, IndustryType } from './schemas'
+import { INDUSTRY_CONFIG } from '../industry-config'
 
 export async function createProposal(
   input: CreateProposalInput,
@@ -30,13 +31,14 @@ export async function createProposal(
     client:       input.client,
     proposalType: input.proposalType,
     template:     input.template,
+    industry:     input.industry,
     currency:     input.currency,
     status:       'draft',
   })
 
   // Safe: failure here means the proposal exists but has no sections — acceptable state
   await db.insert(proposalSections).values(
-    defaultSections(id, input.client)
+    defaultSections(id, input.client, input.industry)
   )
 
   const proposal = await findProposal(id)
@@ -152,6 +154,7 @@ export async function createRevision(proposalId: string, userId: string): Promis
       title:          original.title,
       client:         original.client as Record<string, unknown>,
       proposalType:   original.proposalType,
+      industry:       original.industry,
       status:         'draft',
       rootProposalId: rootId,
       supersededById: null,
@@ -201,35 +204,28 @@ export async function shareProposal(proposalId: string, userId: string): Promise
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-const DEFAULT_TERMS = `**Payment.** A 50% deposit is due upon proposal acceptance. The remaining balance is due upon delivery of final work. All payments are due within 7 days of invoice.
-
-**Revisions.** Each deliverable includes two rounds of revisions. Additional revisions are billed at the hourly rate agreed upon. Revisions do not include changes to the agreed scope.
-
-**Intellectual Property.** Full ownership transfers upon receipt of final payment. I retain the right to display this work in my portfolio.
-
-**Cancellation.** If the project is cancelled after work begins, I retain the deposit and deliver work completed to date.`
-
-function defaultSections(proposalId: string, client: { name: string; company?: string; email: string }) {
+function defaultSections(proposalId: string, client: { name: string; company?: string; email: string }, industry: IndustryType = 'tech') {
+  const cfg = INDUSTRY_CONFIG[industry]
   return [
     {
-      id: nanoid(), proposalId, type: 'client-info', title: 'Client Information', orderIndex: 0, complete: false,
+      id: nanoid(), proposalId, type: 'client-info', title: cfg.sectionLabels.clientInfo, orderIndex: 0, complete: false,
       content: { name: client.name, company: client.company ?? '', email: client.email },
     },
     {
-      id: nanoid(), proposalId, type: 'scope', title: 'Scope of Work', orderIndex: 1, complete: false,
+      id: nanoid(), proposalId, type: 'scope', title: cfg.sectionLabels.scope, orderIndex: 1, complete: false,
       content: {},
     },
     {
-      id: nanoid(), proposalId, type: 'deliverables', title: 'Deliverables', orderIndex: 2, complete: false,
+      id: nanoid(), proposalId, type: 'deliverables', title: cfg.sectionLabels.deliverables, orderIndex: 2, complete: false,
       content: { items: [] },
     },
     {
-      id: nanoid(), proposalId, type: 'pricing', title: 'Investment', orderIndex: 3, complete: false,
+      id: nanoid(), proposalId, type: 'pricing', title: cfg.sectionLabels.pricing, orderIndex: 3, complete: false,
       content: { lineItems: [] },
     },
     {
-      id: nanoid(), proposalId, type: 'terms', title: 'Terms & Conditions', orderIndex: 4, complete: false,
-      content: { text: DEFAULT_TERMS },
+      id: nanoid(), proposalId, type: 'terms', title: cfg.sectionLabels.terms, orderIndex: 4, complete: false,
+      content: { text: cfg.defaultTerms },
     },
   ]
 }

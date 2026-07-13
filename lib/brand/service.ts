@@ -63,13 +63,20 @@ export async function saveLogo(userId: string, logoR2Key: string, tier: Tier): P
       id:        nanoid(),
       userId,
       logoR2Key,
-      primaryColor: '#7c3aed',
-      accentColor:  '#a78bfa',
+      primaryColor: '#4f46e5',
+      accentColor:  '#818cf8',
       font:         'inter',
     })
   }
 
   return (await getBrand(userId))!
+}
+
+export async function deleteLogo(userId: string): Promise<Brand | null> {
+  await db.update(brands)
+    .set({ logoR2Key: null, updatedAt: new Date() })
+    .where(eq(brands.userId, userId))
+  return getBrand(userId)
 }
 
 function rowToBrand(row: typeof brands.$inferSelect): Brand {

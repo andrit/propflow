@@ -99,8 +99,11 @@ export type ProposalStatus = typeof PROPOSAL_STATUSES[number]
 export const PROPOSAL_TYPES = ['cold', 'warm', 'retainer'] as const
 export type ProposalType = typeof PROPOSAL_TYPES[number]
 
-export const TEMPLATE_TYPES = ['clean', 'executive'] as const
+export const TEMPLATE_TYPES = ['clean', 'executive', 'studio'] as const
 export type TemplateType = typeof TEMPLATE_TYPES[number]
+
+export const INDUSTRY_TYPES = ['tech', 'creative', 'trades', 'professional', 'events', 'marketing'] as const
+export type IndustryType = typeof INDUSTRY_TYPES[number]
 
 export const ProposalSchema = z.object({
   id:                              z.string(),
@@ -110,6 +113,7 @@ export const ProposalSchema = z.object({
   proposalType:                    z.enum(PROPOSAL_TYPES),
   status:                          z.enum(PROPOSAL_STATUSES),
   template:                        z.enum(TEMPLATE_TYPES).default('clean'),
+  industry:                        z.enum(INDUSTRY_TYPES).default('tech'),
   currency:                        z.string().default('USD'),
   expiryAt:                        z.date().nullable(),
   coverQuoteOverride:              z.string().nullable(),
@@ -134,6 +138,7 @@ export const CreateProposalSchema = z.object({
   client:       ClientSchema,
   proposalType: z.enum(PROPOSAL_TYPES).default('cold'),
   template:     z.enum(TEMPLATE_TYPES).default('clean'),
+  industry:     z.enum(INDUSTRY_TYPES).default('tech'),
   currency:     z.string().max(10).default('USD'),
 })
 

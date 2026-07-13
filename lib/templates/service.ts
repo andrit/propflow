@@ -92,7 +92,7 @@ export async function applyTemplate(
   const { createProposal, addSection, updateSection } = await import('../proposals/service')
 
   const proposal = await createProposal(
-    { title: `Proposal (from ${template.name})`, client: { name: '', email: '' }, proposalType: 'cold', template: 'clean', currency: 'USD' },
+    { title: `Proposal (from ${template.name})`, client: { name: '', email: '' }, proposalType: 'cold', template: 'clean', industry: 'tech', currency: 'USD' },
     userId,
     tier
   )

@@ -43,6 +43,14 @@ export async function uploadBuffer(key: string, buffer: Buffer, contentType: str
   await r2.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: buffer, ContentType: contentType }))
 }
 
+export async function getReadUrl(key: string, expiresIn = 3600): Promise<string> {
+  return getSignedUrl(
+    r2,
+    new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+    { expiresIn }
+  )
+}
+
 export async function deleteFile(key: string): Promise<void> {
   await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
 }

@@ -108,6 +108,7 @@ function rowToProposal(
     proposalType:                   row.proposalType as Proposal['proposalType'],
     status:                         row.status as Proposal['status'],
     template:                       (row.template ?? 'clean') as Proposal['template'],
+    industry:                       (row.industry ?? 'tech') as Proposal['industry'],
     currency:                       row.currency ?? 'USD',
     expiryAt:                       row.expiryAt ?? null,
     coverQuoteOverride:             row.coverQuoteOverride ?? null,

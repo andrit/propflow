@@ -1,7 +1,7 @@
 # propflow — Freelance Proposal Builder
 
 **Priority:** #2 in factory build queue
-**Status:** Phase 1 — Scaffold
+**Status:** Phase 9 complete — Phase 10 next
 **Stack:** `next-clerk-stripe-railway`
 **Category:** business-productivity
 **Target audience:** freelancers, solopreneurs
@@ -28,7 +28,7 @@ Wizard-style web app: fill in scope, deliverables, timeline, pricing, and terms 
 - Finalized proposals cannot be edited — archive and create new
 - Free tier: 1 proposal/month, no custom branding, default templates only
 - Pro tier: unlimited proposals, custom branding, 5 saved templates
-- Teams tier: 3 seats, shared templates
+- Teams tier: **removed from MVP** — TIERS.TEAMS kept in code, no live Stripe product. propflow is single-user. Ship Pro as the ceiling tier.
 
 **See:** `event-storm.md`, `bounded-contexts.md`, `GLOSSARY.md`
 
@@ -42,7 +42,7 @@ Wizard-style web app: fill in scope, deliverables, timeline, pricing, and terms 
 | Database | Drizzle ORM + postgres.js (Railway Postgres) | Type-safe, no codegen overhead |
 | File storage | Cloudflare R2 | Logo uploads + generated PDFs |
 | Auth | Clerk | Reused from imgscalr pattern |
-| Billing | Stripe subscription (Pro $9/mo, Teams $19/mo) | Recurring revenue vs one-time |
+| Billing | Stripe subscription (Pro $9/mo · $79/yr) | Two-tier only for MVP — Teams removed |
 
 ---
 
@@ -67,10 +67,14 @@ Wizard-style web app: fill in scope, deliverables, timeline, pricing, and terms 
 
 ## Pricing
 
-**Model:** subscription
-- **Free:** 1 proposal/month, default template, no custom branding
-- **Pro ($9/mo):** unlimited proposals, custom branding, 5 saved templates
-- **Teams ($19/mo):** 3 seats, shared templates
+**Model:** freemium (2 tiers for MVP)
+
+| Tier | Price | What you get |
+|------|-------|-------------|
+| Free | $0 | 1 proposal/month · default template · no custom branding |
+| Pro | $9/mo · $79/yr | Unlimited proposals · custom branding + logo · 5 saved templates |
+
+> ⚠️ **Teams tier removed from MVP.** propflow is a single-user app. TIERS.TEAMS remains in code; `STRIPE_TEAMS_*` env vars kept for compatibility but no live Stripe products should be created. Remove Teams from the pricing page before launch.
 
 ---
 
@@ -127,8 +131,17 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 | 3 — Features complete | ✅ 2026-06-04 |
 | 4 — Billing verified | ✅ 2026-06-04 |
 | 5 — Polish & production config | ✅ 2026-06-05 |
-| 6 — Extract to feature-graph | ⬜ |
-| 7 — Export artifact | ⬜ |
+| 6 — Extract to feature-graph | ✅ 2026-06-05 |
+| 7 — Export artifact | ✅ 2026-06-05 |
+| 8 — QA Gate | ✅ 2026-06-05 (83 tests, tsc clean — see postmortem-phase7.md) |
+| 9 — Support Audit | ✅ 2026-06-07 — docs/support-audit.md |
+| 10 — Support Automation | ⬜ /help page, harden error messages, support-playbook.md |
+| 11 — Infrastructure | ⬜ See docs/launch-process.md — Note: logo upload must be wired or hidden, Teams gap disclosed |
+| 12 — Staging & Smoke Test | ⬜ |
+| 13 — Legal & Compliance | ⬜ /privacy + /terms pages needed |
+| 14 — Monitoring Setup | ⬜ Sentry + UptimeRobot |
+| 15 — Go Live | ⬜ Stripe live mode + announce |
+| 16 — Ongoing | ⬜ |
 
 ---
 
@@ -147,3 +160,4 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 | Date | Phase | Summary |
 |------|-------|---------|
 | 2026-06-03 | 0 | Phase 0 complete. event-storm.md, bounded-contexts.md, GLOSSARY.md written. PDF: @react-pdf/renderer. DB: Drizzle + Railway Postgres. |
+| 2026-06-07 | 9 | Support audit complete (docs/support-audit.md). 12 error states documented, 5 ticket scripts written. 3 P0 pre-launch blockers identified: logo upload (fix or hide), Teams seats (disclose gap on pricing page), mutation endpoint rate limiting (add Upstash Redis). Product story seeded (docs/product-story.md). Project RAG created (130 chunks). |

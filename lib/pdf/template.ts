@@ -48,6 +48,8 @@ export function generateProposalHtml(
   const css = buildCss(primary, primary12, primary40, font, tmpl)
   const body = tmpl === 'executive'
     ? buildExecutiveBody(proposal, brand, isProOrTeams, freelancerName, freelancerDomain, coverQuote, coverQuoteAttribution, expiryText, footerRight)
+    : tmpl === 'studio'
+    ? buildStudioBody(proposal, brand, isProOrTeams, freelancerName, freelancerDomain, expiryText, footerRight)
     : buildCleanBody(proposal, brand, isProOrTeams, freelancerName, freelancerDomain, expiryText, footerRight)
 
   return `<!DOCTYPE html>
@@ -141,6 +143,40 @@ function buildExecutiveBody(
 ${buildBodyPages(p, expiryText, footerRight, 'executive')}`
 }
 
+function buildStudioBody(
+  p: Proposal, brand: Brand | null, isPro: boolean,
+  name: string, domain: string, expiryText: string, footerRight: string
+): string {
+  const client = p.client
+  const logoHtml = '' // Phase 5
+
+  return `
+<div class="page cover studio-cover">
+  <div class="studio-band"></div>
+  <div class="studio-cover-body">
+    <div class="cover-logo">
+      ${logoHtml || `<span class="cover-logo-name">${esc(name)}</span>`}
+    </div>
+    <div class="cover-mid">
+      <span class="cover-eyebrow">Proposal</span>
+      <h1 class="studio-cover-title">${esc(p.title)}</h1>
+      <p class="studio-cover-for">For ${esc(client.company || client.name)}</p>
+    </div>
+  </div>
+  <div class="cover-footer">
+    <div>
+      <div class="cf-label">Prepared for</div>
+      <div class="cf-value">${esc(client.name)}<br>${esc(client.company ?? '')}<br>${esc(client.email)}</div>
+    </div>
+    <div>
+      <div class="cf-label">Prepared by</div>
+      <div class="cf-value">${esc(name)}${domain ? `<br>${esc(domain)}` : ''}<br>${formatDate(p.createdAt)}</div>
+    </div>
+  </div>
+</div>
+${buildBodyPages(p, expiryText, footerRight, 'studio')}`
+}
+
 // ── Section renderer ──────────────────────────────────────────────────────────
 
 function buildBodyPages(p: Proposal, expiryText: string, footerRight: string, tmpl: string): string {
@@ -150,8 +186,9 @@ function buildBodyPages(p: Proposal, expiryText: string, footerRight: string, tm
   return sections
     .filter(s => hasContent(s))
     .map(s => {
+      const extraClass = tmpl === 'studio' ? ' studio-body' : ''
       const html = `
-<div class="page body-page">
+<div class="page body-page${extraClass}">
   <div class="pg-header">
     <span class="pg-header-left">propflow</span>
     <span class="pg-header-right">${esc(p.title)} · Page ${pageNum++}</span>
@@ -170,9 +207,14 @@ function buildBodyPages(p: Proposal, expiryText: string, footerRight: string, tm
 }
 
 function renderSection(s: Section, tmpl: string): string {
-  const heading = tmpl === 'executive'
-    ? `<div class="s-band"><span class="s-heading">${esc(s.title)}</span></div><div class="s-content">`
-    : `<div class="section"><h2 class="s-heading">${esc(s.title)}</h2><div class="s-rule"></div>`
+  let heading: string
+  if (tmpl === 'executive') {
+    heading = `<div class="s-band"><span class="s-heading">${esc(s.title)}</span></div><div class="s-content">`
+  } else if (tmpl === 'studio') {
+    heading = `<div class="section"><h2 class="studio-s-heading">${esc(s.title)}</h2>`
+  } else {
+    heading = `<div class="section"><h2 class="s-heading">${esc(s.title)}</h2><div class="s-rule"></div>`
+  }
 
   const close = '</div>'
   const inner = renderSectionContent(s)
@@ -373,6 +415,24 @@ body { background: white; font-family: 'Inter', system-ui, sans-serif; -webkit-p
 
 /* ── Terms ── */
 .terms { font-size: 11px; color: var(--label); line-height: 1.65; margin-bottom: 8px; }
+
+/* ── Studio cover ── */
+.studio-cover { background: #FAFAF8; }
+.studio-band { position: absolute; inset: 0 auto 0 0; width: 8px; background: var(--primary); }
+.studio-cover-body { flex: 1; display: flex; flex-direction: column; padding: 48px 48px 48px 56px; }
+.studio-cover-title { font-size: 30px; font-weight: 700; color: var(--dark); line-height: 1.2; letter-spacing: -.4px; margin-bottom: 14px; }
+.studio-cover-for { font-size: 20px; font-weight: 400; color: var(--label); }
+
+/* ── Studio body pages ── */
+.studio-body { background: #FAFAF8; }
+.studio-body .pg-content { font-size: 15px; line-height: 1.75; }
+.studio-body .body-text { font-size: 13px; line-height: 1.75; color: #374151; }
+
+/* ── Studio section headings ── */
+.studio-s-heading { font-size: 16px; font-weight: 600; color: var(--primary); border-left: 4px solid var(--primary); padding-left: 10px; margin-bottom: 18px; }
+
+/* ── Studio pricing table ── */
+.studio-body .pricing-table tbody tr.row-alt { background: #F9FAFB; }
 `
 }
 

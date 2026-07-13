@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAuthError } from '@/lib/auth'
 import { getBrand, saveBrand } from '@/lib/brand/service'
 import { SaveBrandSchema } from '@/lib/brand/schemas'
+import { getReadUrl } from '@/lib/r2'
 
 export async function GET() {
   const auth = await requireAuth()
   if (isAuthError(auth)) return auth
 
   const brand = await getBrand(auth.userId)
-  return NextResponse.json(brand)
+  if (!brand) return NextResponse.json(null)
+  const logoUrl = brand.logoR2Key ? await getReadUrl(brand.logoR2Key) : null
+  return NextResponse.json({ ...brand, logoUrl })
 }
 
 export async function PATCH(request: NextRequest) {

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Proposal, Section } from '@/lib/proposals/schemas'
+import { INDUSTRY_CONFIG, type IndustryType } from '@/lib/industry-config'
 
 // ── Types for section content ──────────────────────────────────────────────
 
@@ -63,7 +64,10 @@ function ClientInfoEditor({ content, onChange }: { content: Record<string, unkno
   )
 }
 
-function ScopeEditor({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
+function ScopeEditor({ content, onChange, industry }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void; industry?: IndustryType }) {
+  const placeholder = industry
+    ? INDUSTRY_CONFIG[industry].placeholders.scope
+    : "Describe the scope of this project..."
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -72,7 +76,7 @@ function ScopeEditor({ content, onChange }: { content: Record<string, unknown>; 
           rows={5}
           value={(content.description as string) ?? ''}
           onChange={e => onChange({ ...content, description: e.target.value })}
-          placeholder="Describe the scope of this project..."
+          placeholder={placeholder}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
         />
       </div>
@@ -240,7 +244,7 @@ function TermsEditor({ content, onChange }: { content: Record<string, unknown>; 
   )
 }
 
-function SectionEditorInner({ section, onSave }: { section: Section; onSave: (id: string, content: Record<string, unknown>) => void }) {
+function SectionEditorInner({ section, onSave, industry }: { section: Section; onSave: (id: string, content: Record<string, unknown>) => void; industry?: IndustryType }) {
   const [content, setContent] = useState<Record<string, unknown>>(section.content as Record<string, unknown>)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isFirstRender = useRef(true)
@@ -264,13 +268,116 @@ function SectionEditorInner({ section, onSave }: { section: Section; onSave: (id
   return (
     <div>
       {section.type === 'client-info'   && <ClientInfoEditor    {...editorProps} />}
-      {section.type === 'scope'         && <ScopeEditor          {...editorProps} />}
+      {section.type === 'scope'         && <ScopeEditor          {...editorProps} industry={industry} />}
       {section.type === 'deliverables'  && <DeliverablesEditor   {...editorProps} />}
       {section.type === 'pricing'       && <PricingEditor        {...editorProps} />}
       {section.type === 'terms'         && <TermsEditor          {...editorProps} />}
-      {section.type === 'custom'        && <ScopeEditor          {...editorProps} />}
+      {section.type === 'custom'        && <ScopeEditor          {...editorProps} industry={industry} />}
     </div>
   )
+}
+
+// ── Read-only section view ────────────────────────────────────────────────
+
+function SectionReadonlyView({ section }: { section: Section }) {
+  const content = section.content as Record<string, unknown>
+  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  if (section.type === 'client-info') {
+    const fields: [string, string][] = [
+      ['name', 'Client Name'], ['company', 'Company'], ['email', 'Email'],
+      ['phone', 'Phone'], ['projectStart', 'Project Start'],
+    ]
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {fields.filter(([key]) => content[key]).map(([key, label]) => (
+          <div key={key}>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</p>
+            <p className="text-sm text-gray-900">{content[key] as string}</p>
+          </div>
+        ))}
+        {typeof content.notes === 'string' && content.notes && (
+          <div className="col-span-full">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Notes</p>
+            <p className="text-sm text-gray-600 whitespace-pre-wrap">{content.notes}</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (section.type === 'scope' || section.type === 'custom') {
+    return <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{(content.description as string) ?? ''}</p>
+  }
+
+  if (section.type === 'deliverables') {
+    const items: DeliverableItem[] = (content.items as DeliverableItem[]) ?? []
+    if (!items.length) return <p className="text-sm text-gray-400">No deliverables listed.</p>
+    return (
+      <div className="flex flex-col gap-3">
+        {items.map((item, i) => (
+          <div key={i} className="border border-gray-100 rounded-lg p-4">
+            <p className="font-semibold text-sm text-gray-900">{item.title}</p>
+            {item.description && <p className="text-sm text-gray-600 mt-1">{item.description}</p>}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (section.type === 'pricing') {
+    const items: LineItem[] = (content.lineItems as LineItem[]) ?? []
+    const discount = (content.discount as Discount | undefined) ?? null
+    const subtotal = items.reduce((s, i) => s + i.total, 0)
+    const discountAmt = discount?.amount ?? 0
+    const total = subtotal - discountAmt
+    return (
+      <div>
+        <table className="w-full text-sm mb-3">
+          <thead>
+            <tr className="border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              <th className="text-left pb-2" style={{width:'55%'}}>Description</th>
+              <th className="text-right pb-2" style={{width:'10%'}}>Qty</th>
+              <th className="text-right pb-2" style={{width:'15%'}}>Rate</th>
+              <th className="text-right pb-2" style={{width:'20%'}}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, i) => (
+              <tr key={i} className="border-b border-gray-100">
+                <td className="py-2 pr-2 text-gray-700">{item.description}</td>
+                <td className="py-2 px-1 text-right text-gray-600">{item.quantity}</td>
+                <td className="py-2 px-1 text-right text-gray-600">${fmt(item.unitRate)}</td>
+                <td className="py-2 pl-1 text-right font-medium">${fmt(item.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="flex flex-col items-end gap-1.5 text-sm">
+          <div className="flex gap-8">
+            <span className="text-gray-500">Subtotal</span>
+            <span className="font-medium w-24 text-right">${fmt(subtotal)}</span>
+          </div>
+          {discount && (
+            <div className="flex gap-8">
+              <span className="text-red-500">{discount.label}</span>
+              <span className="text-red-500 w-24 text-right">−${fmt(discountAmt)}</span>
+            </div>
+          )}
+          <div className="border-t border-gray-200 pt-1.5 flex gap-8 w-full justify-end">
+            <span className="font-bold text-violet-700 uppercase tracking-wide text-xs">Total</span>
+            <span className="font-bold text-violet-700 text-base w-24 text-right">${fmt(total)}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (section.type === 'terms') {
+    return <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{(content.text as string) ?? ''}</p>
+  }
+
+  return null
 }
 
 // ── Main editor ────────────────────────────────────────────────────────────
@@ -352,6 +459,30 @@ export default function ProposalEditor({ initialProposal }: { initialProposal: P
   }
 
   const isReadOnly = proposal.status !== 'draft'
+  const modalRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isFinalizingFlow) return
+    const el = modalRef.current
+    if (!el) return
+    const focusable = el.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    focusable[0]?.focus()
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { setIsFinalizingFlow(false); return }
+      if (e.key !== 'Tab' || focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus() }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [isFinalizingFlow])
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -432,9 +563,9 @@ export default function ProposalEditor({ initialProposal }: { initialProposal: P
             </div>
 
             {isReadOnly ? (
-              <pre className="text-sm text-gray-600 whitespace-pre-wrap">{JSON.stringify(activeSection.content, null, 2)}</pre>
+              <SectionReadonlyView section={activeSection} />
             ) : (
-              <SectionEditorInner key={activeSection.id} section={activeSection} onSave={saveSection} />
+              <SectionEditorInner key={activeSection.id} section={activeSection} onSave={saveSection} industry={proposal.industry as IndustryType} />
             )}
           </div>
         ) : (
@@ -446,9 +577,15 @@ export default function ProposalEditor({ initialProposal }: { initialProposal: P
 
       {/* Finalize modal */}
       {isFinalizingFlow && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="finalize-dialog-title"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        >
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Send this proposal?</h3>
+            <h3 id="finalize-dialog-title" className="text-lg font-bold text-gray-900 mb-2">Send this proposal?</h3>
             <p className="text-sm text-gray-600 mb-4">
               This locks the current version. You can still create a revision afterward.
             </p>

@@ -108,13 +108,24 @@ function PricingSection({ content, currency }: { content: Record<string, unknown
   )
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 function TermsSection({ content }: { content: Record<string, unknown> }) {
   const text = (content.text as string) ?? ''
   return (
     <div className="text-xs text-gray-500 leading-relaxed space-y-2">
-      {text.split(/\n\n+/).map((para, i) => (
-        <p key={i} dangerouslySetInnerHTML={{ __html: para.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
-      ))}
+      {text.split(/\n\n+/).map((para, i) => {
+        // Escape HTML first, then apply safe **bold** → <strong> transform
+        const safe = escapeHtml(para).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        return <p key={i} dangerouslySetInnerHTML={{ __html: safe }} />
+      })}
     </div>
   )
 }
